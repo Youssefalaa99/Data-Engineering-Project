@@ -82,7 +82,7 @@ start_task = BashOperator(
 )
 
 python_task = PythonOperator(
-    task_id='python_task',
+    task_id='stream_to_kafka',
     python_callable=stream_to_kafka,
     dag=dag,
 )
