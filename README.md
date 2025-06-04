@@ -17,7 +17,9 @@ All components are containerized using **Docker**.
 
 ## 🏗️ System Architecture
 
-![System Architecture](image.png)
+![System Architecture](Project_architecture.png)
+
+
 
 ---
 
@@ -80,6 +82,9 @@ pip install -r requirements.txt
 docker-compose up -d
 ```
 
+### 5. Start Airflow DAG
+- Go to Airflow Web UI, login, and unpause **stream_to_kafka** DAG.
+
 ---
 
 ## 🌐 Interface Links
@@ -96,7 +101,7 @@ docker-compose up -d
 
 ---
 
-## ▶️ Running the Pipeline
+## ▶️ Running Spark Streaming
 ### Method 1: Direct Python Run
 ```bash
 python spark/src/main.py
