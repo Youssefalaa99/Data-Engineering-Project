@@ -1,1 +1,4 @@
-kafka-python-ng==2.2.2
+kafka-python==2.2.10
+pyspark==3.2.4
+spark==0.2.1
+apache-airflow==2.2.5

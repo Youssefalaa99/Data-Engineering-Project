@@ -11,7 +11,8 @@ def create_spark_conn():
         spark = SparkSession.builder \
                         .appName("Kafka streaming to MongoDB") \
                         .master("local[*]") \
-                        .config('spark.jars.packages', 'org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.4') \
+                        .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.4,"
+                                                    "org.mongodb.spark:mongo-spark-connector_2.12:10.5.0") \
                         .getOrCreate()
         spark.sparkContext.setLogLevel("INFO")
     except Exception as e:
@@ -23,15 +24,14 @@ def read_from_kafka(spark):
     spark_df = None
     try:
         spark_df = spark.readStream \
-            .format('kafka') \
-            .option('kafka.bootstrap.servers', KAFKA_BROKER) \
-            .option('subscribe', KAFKA_TOPIC) \
-            .option('startingOffsets', 'earliest') \
+            .format("kafka") \
+            .option("kafka.bootstrap.servers", KAFKA_BROKER) \
+            .option("subscribe", KAFKA_TOPIC) \
+            .option("startingOffsets", "earliest") \
             .load()
         logging.info("Kafka streaming dataframe created successfully")
     except Exception as e:
-        print(f"Error kafka conn read due to: {e}")
-        logging.warning(f"Kafka dataframe could not be created: {e}")
+        logging.error(f"Kafka dataframe could not be created: {e}")
         exit(1)
 
     return spark_df
@@ -58,6 +58,23 @@ def transform_kafka_df(spark_df):
     return spark_df
 
 def write_to_mongo(df):
+    try:
+        query = df.writeStream \
+            .format("mongodb") \
+            .option("spark.mongodb.connection.uri", MONGO_URI) \
+            .option("spark.mongodb.database", MONGO_DATABASE) \
+            .option("spark.mongodb.collection", MONGO_COLLECTION) \
+            .option("checkpointLocation", "/tmp/kafka-mongo-checkpoint") \
+            .outputMode("append") \
+            .start()
+
+        query.awaitTermination()
+    except Exception as e:
+        logging.error(f"Error while writing to mongo: {e}")
+        exit(1)
+
+# Used for printing
+def write_to_console(df):
     query = df.writeStream \
         .outputMode("append") \
         .format("console") \
@@ -72,5 +89,6 @@ def start_job():
     if spark is not None:
         spark_df = read_from_kafka(spark)
         transformed_df = transform_kafka_df(spark_df)
+        # write_to_console(transformed_df)
         write_to_mongo(transformed_df)
         

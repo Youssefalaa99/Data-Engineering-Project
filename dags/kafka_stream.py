@@ -21,6 +21,7 @@ default_args = {
 api_url = "https://randomuser.me/api/"
 kafka_broker = 'broker:29092'
 kafka_topic = 'users'
+extract_duration = 30    # The duration to keep extracting from API in (seconds)
 
 
 # Function to fetch data from api
@@ -61,7 +62,7 @@ def stream_to_kafka():
     )
     
     while True:
-        if time.time() > time_break + 30 : break
+        if time.time() > time_break + extract_duration : break
         try:
             data = get_user_data_api()
             data = format_data(data)
@@ -101,6 +102,7 @@ with DAG(
     # Define task dependencies
     start_task >> python_task >> end_task
 
-# Test functions
+
+# Test individual functions
 # stream_to_kafka()
 # get_user_data_api()
