@@ -97,7 +97,7 @@ docker-compose up -d
 - **URL**: http://localhost:9021
 
 ### Spark Master UI
-- **URL**: http://192.168.71.128:9090/
+- **URL**: http://localhost:9090/
 
 ---
 
