@@ -58,6 +58,7 @@ def transform_kafka_df(spark_df):
 
     return spark_df
 
+
 # Write to MongoDB
 def write_to_mongo(df):
     try:
@@ -70,7 +71,7 @@ def write_to_mongo(df):
             .outputMode("append") \
             .start()
 
-        query.awaitTermination()
+        return query
     except Exception as e:
         logging.error(f"Error while writing to mongo: {e}")
         exit(1)
@@ -84,7 +85,7 @@ def write_to_bigquery(df):
             .option("checkpointLocation", "/tmp/kafka-bigquery-checkpoint") \
             .start()
         
-        query.awaitTermination()
+        return query
     except Exception as e:
         logging.error(f"Error while writing to bigquery: {e}")
 
@@ -116,6 +117,6 @@ def start_job():
         spark_df = read_from_kafka(spark)
         transformed_df = transform_kafka_df(spark_df)
         # write_to_console(transformed_df)
-        # write_to_mongo(transformed_df)
-        write_to_bigquery(transformed_df)
-        
+        mongo_query = write_to_mongo(transformed_df)
+        bq_query = write_to_bigquery(transformed_df)
+        spark.streams.awaitAnyTermination()

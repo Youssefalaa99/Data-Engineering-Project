@@ -2,14 +2,8 @@
 
 ## 📘 Introduction
 
-This is a hands-on project that builds an end-to-end **data engineering pipeline**. It covers every stage — from **data ingestion** to **processing** and **storage**, using a powerful tech stack:
+This is a hands-on project that builds an end-to-end **data engineering pipeline**. It covers every stage — from **data ingestion** to **processing** and **storage**, using a modern tech stack
 
-- Apache Airflow  
-- Python  
-- Apache Kafka  
-- Apache Zookeeper  
-- Apache Spark  
-- MongoDB  
 
 All components are containerized using **Docker**.
 
@@ -31,6 +25,7 @@ All components are containerized using **Docker**.
 - **Apache Zookeeper**
 - **Apache Spark**
 - **MongoDB**
+- **Google BigQuery**
 - **PostgreSQL**
 - **Docker**
 
@@ -45,16 +40,19 @@ All components are containerized using **Docker**.
    Orchestrates the pipeline and sends fetched data to Kafka.
 
 3. **Apache Kafka & Zookeeper**  
-   Stream data from Airflow to Apache Spark.
+   Stream data from Airflow to be processed by Apache Spark.
 
 4. **Control Center & Schema Registry**  
    Monitor Kafka and manage schemas.
 
 5. **Apache Spark**  
-   Processes data from Kafka using Structured Streaming and writes it to MongoDB.
+   Processes data from Kafka using Structured Streaming and writes it to MongoDB and Google BigQuery.
 
 6. **MongoDB**  
-   Stores processed data for querying and analysis.
+   Store raw data for fast document-based access.
+
+7. **BigQuery**  
+   Store structured data for analysis and visualization.
 
 ---
 
@@ -82,9 +80,6 @@ pip install -r requirements.txt
 docker-compose up -d
 ```
 
-### 5. Start Airflow DAG
-- Go to Airflow Web UI, login, and unpause **stream_to_kafka** DAG.
-
 ---
 
 ## 🌐 Interface Links
@@ -101,23 +96,46 @@ docker-compose up -d
 
 ---
 
-## ▶️ Running Spark Streaming
-### Method 1: Direct Python Run
+## ▶️ Running the pipeline
+### Setup BigQuery Access
+- Create a GCP service account from IAM
+- Give the service account required permissions
+   - BigQuery Data Editor
+   - BigQuery Job User
+- Create and download JSON key file.
+- Set env variable before running pipeline
+   ```bash
+   export GOOGLE_APPLICATION_CREDENTIALS='<key_path.json>'
+   ```
+- Configure project_id and dataset in spark/src/config/setting.py
+
+### Run Airflow to extract API data
+- Go to Airflow Web UI.
+- Unpause **stream_to_kafka** DAG.
+
+### Run pyspark streaming application 
+#### Method 1: Direct Python Run
 ```bash
 python spark/src/main.py
 ```
-### Method 2: Spark Submit
+#### Method 2: Spark Submit
 ```bash
 spark-submit --master spark://localhost:7077 \
-    --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.1,org.mongodb.spark:mongo-spark-connector_2.12:10.5.0 \
-    spark/src/main.py
+--packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.1,org.mongodb.spark:mongo-spark-connector_2.12:10.5.0,com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.42.2 \
+spark/src/main.py
 ```
 
-## To be added
-- Added Bigquery
-- steps to create gcp service account and export key
-- add path to env variable GOOGLE_APPLICATION_CREDENTIALS
+### Check loaded data
+#### From mongosh
+```bash
+db.users.find()
+```
+#### From BigQuery SQL editor
+```sql
+SELECT * FROM `project_id.dataset.users`
+```
 
+---
 
 ## 📎 Reference
 
