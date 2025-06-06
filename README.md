@@ -113,6 +113,12 @@ spark-submit --master spark://localhost:7077 \
     spark/src/main.py
 ```
 
+## To be added
+- Added Bigquery
+- steps to create gcp service account and export key
+- add path to env variable GOOGLE_APPLICATION_CREDENTIALS
+
+
 ## 📎 Reference
 
 Special thanks to **CodewithYu** for the project inspiration.  
