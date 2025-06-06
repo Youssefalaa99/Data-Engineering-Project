@@ -1,5 +1,5 @@
 import json, logging
-from config.settings import KAFKA_BROKER, KAFKA_TOPIC, MONGO_URI, MONGO_DATABASE, MONGO_COLLECTION
+from config.settings import *
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType
@@ -12,7 +12,8 @@ def create_spark_conn():
                         .appName("Kafka streaming to MongoDB") \
                         .master("local[*]") \
                         .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.2.4,"
-                                                    "org.mongodb.spark:mongo-spark-connector_2.12:10.5.0") \
+                                                    "org.mongodb.spark:mongo-spark-connector_2.12:10.5.0,"
+                                                    "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.42.2") \
                         .getOrCreate()
         spark.sparkContext.setLogLevel("INFO")
     except Exception as e:
@@ -57,6 +58,7 @@ def transform_kafka_df(spark_df):
 
     return spark_df
 
+# Write to MongoDB
 def write_to_mongo(df):
     try:
         query = df.writeStream \
@@ -72,6 +74,30 @@ def write_to_mongo(df):
     except Exception as e:
         logging.error(f"Error while writing to mongo: {e}")
         exit(1)
+
+# Write to Bigquery
+def write_to_bigquery(df):
+    try:
+        query = df.writeStream \
+            .foreachBatch(write_to_bigquery_batch) \
+            .outputMode("append") \
+            .option("checkpointLocation", "/tmp/kafka-bigquery-checkpoint") \
+            .start()
+        
+        query.awaitTermination()
+    except Exception as e:
+        logging.error(f"Error while writing to bigquery: {e}")
+
+
+# For each batch biquery write
+def write_to_bigquery_batch(batch_df, batch_id):
+    batch_df.write \
+        .format("bigquery") \
+        .option("table", f"{BQ_PROJECT_ID}.{BQ_DATASET}.{BQ_TABLENAME}") \
+        .option("writeMethod", "direct") \
+        .mode("append") \
+        .save()
+
 
 # Used for printing
 def write_to_console(df):
@@ -90,5 +116,6 @@ def start_job():
         spark_df = read_from_kafka(spark)
         transformed_df = transform_kafka_df(spark_df)
         # write_to_console(transformed_df)
-        write_to_mongo(transformed_df)
+        # write_to_mongo(transformed_df)
+        write_to_bigquery(transformed_df)
         
